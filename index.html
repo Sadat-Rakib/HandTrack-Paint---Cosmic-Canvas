@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HandTrack Paint - Cosmic Canvas</title>
+    <script src="https://cdn.jsdelivr.net/npm/handtrackjs/dist/handtrack.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #cosmicCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        #drawCanvas {
+            flex: 1;
+            background: transparent;
+            border-right: 2px solid #ffffff33;
+        }
+
+        .video-section {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        video,
+        #liveCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff33;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .control-btn:hover {
+            background: #ffffff66;
+        }
+
+        #colorPicker {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
+        }
+
+        #brushMode {
+            padding: 10px;
+            border-radius: 5px;
+            background: #ffffff33;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="cosmicCanvas"></div>
+    <div class="container">
+        <canvas id="drawCanvas"></canvas>
+        <div class="video-section">
+            <video id="video" autoplay muted></video>
+            <canvas id="liveCanvas"></canvas>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="control-btn" id="saveBtn">Save Drawing</button>
+        <input type="color" id="colorPicker" value="#ff0000">
+        <select id="brushMode" class="control-btn">
+            <option value="round">Round Brush</option>
+            <option value="square">Square Brush</option>
+            <option value="starry">Starry Brush</option>
+        </select>
+        <button class="control-btn" id="clearBtn">Clear Canvas</button>
+    </div>
+
+    <script>
+        // Cosmic background with p5.js
+        const sketch = (p) => {
+            p.setup = () => {
+                p.createCanvas(window.innerWidth, window.innerHeight);
+                p.background(0);
+            };
+            p.draw = () => {
+                p.noStroke();
+                p.fill(255, 50);
+                p.ellipse(p.random(p.width), p.random(p.height), 2, 2);
+            };
+        };
+        new p5(sketch, 'cosmicCanvas');
+
+        // Set up canvas and context for drawing
+        const drawCanvas = document.getElementById('drawCanvas');
+        const drawCtx = drawCanvas.getContext('2d');
+        drawCanvas.width = window.innerWidth / 2;
+        drawCanvas.height = window.innerHeight;
+
+        // Set up video and canvas for live video feed
+        const video = document.getElementById('video');
+        const liveCanvas = document.getElementById('liveCanvas');
+        const liveCtx = liveCanvas.getContext('2d');
+        liveCanvas.width = window.innerWidth / 2;
+        liveCanvas.height = window.innerHeight;
+
+        // HandTrack.js model parameters
+        const modelParams = {
+            flipHorizontal: true,
+            maxNumBoxes: 5,
+            iouThreshold: 0.5,
+            scoreThreshold: 0.6,
+        };
+
+        let prevX = null;
+        let prevY = null;
+        let pointerColor = '#ff0000';
+        let brushMode = 'round';
+        const brushSize = 10;
+        const soundDraw = new Howl({ src: ['/sounds/draw.mp3'], volume: 0.3 });
+        const soundErase = new Howl({ src: ['/sounds/erase.mp3'], volume: 0.5 });
+
+        // Function to draw on the canvas with different brush modes
+        function drawFromHand(x, y, isClosed, isOpen) {
+            if (prevX === null || prevY === null) {
+                prevX = x;
+                prevY = y;
+                return;
+            }
+
+            if (isOpen) {
+                drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                soundErase.play();
+                resetDrawing();
+                return;
+            }
+
+            if (isClosed) {
+                pointerColor = document.getElementById('colorPicker').value;
+                return;
+            }
+
+            drawCtx.strokeStyle = pointerColor;
+            drawCtx.lineWidth = brushSize;
+            drawCtx.lineCap = 'round';
+            drawCtx.beginPath();
+            drawCtx.moveTo(prevX, prevY);
+
+            if (brushMode === 'round') {
+                drawCtx.lineTo(x, y);
+                drawCtx.stroke();
+            } else if (brushMode === 'square') {
+                drawCtx.rect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize);
+                drawCtx.fillStyle = pointerColor;
+                drawCtx.fill();
+                drawCtx.stroke();
+            } else if (brushMode === 'starry') {
+                drawStar(drawCtx, x, y, 5, brushSize / 2, brushSize / 4);
+                drawCtx.fillStyle = pointerColor;
+                drawCtx.fill();
+            }
+
+            soundDraw.play();
+            prevX = x;
+            prevY = y;
+        }
+
+        // Function to draw a star
+        function drawStar(ctx, x, y, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            let step = Math.PI / spikes;
+            ctx.beginPath();
+            ctx.moveTo(x, y - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = x + Math.cos(rot) * outerRadius;
+                y = y + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+                x = x + Math.cos(rot) * innerRadius;
+                y = y + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(x, y - outerRadius);
+            ctx.closePath();
+        }
+
+        // Helper function to generate a random color (alternative method)
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random()*16777215).toString(16);
+        }
+
+        // Function to reset the drawing state
+        function resetDrawing() {
+            prevX = null;
+            prevY = null;
+        }
+
+        // Event listeners for controls
+        document.getElementById('colorPicker').addEventListener('change', (e) => {
+            pointerColor = e.target.value;
+        });
+
+        document.getElementById('brushMode').addEventListener('change', (e) => {
+            brushMode = e.target.value;
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `cosmic_painting_${Date.now()}.png`;
+            link.href = drawCanvas.toDataURL();
+            link.click();
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            resetDrawing();
+            soundErase.play();
+        });
+
+        // Start the video feed and detect hand gestures
+        handTrack.startVideo(video).then(status => {
+            if (status) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }).then(() => {
+                    handTrack.load(modelParams).then(model => {
+                        const detect = () => {
+                            model.detect(video).then(predictions => {
+                                liveCtx.clearRect(0, 0, liveCanvas.width, liveCanvas.height);
+                                model.renderPredictions(predictions, liveCanvas, liveCtx, video);
+
+                                const open = predictions.find(p => p.label === "open");
+                                const closed = predictions.find(p => p.label === "closed");
+                                const point = predictions.find(p => p.label === "point");
+
+                                if (open) {
+                                    drawFromHand(drawCanvas.width / 2, drawCanvas.height / 2, false, true);
+                                } else if (closed) {
+                                    const [x, y, w, h] = closed.bbox;
+                                    const centerX = (x + w / 2) / video.videoWidth * drawCanvas.width;
+                                    const centerY = (y + h / 2) / video.videoHeight * drawCanvas.height;
+                                    drawFromHand(centerX, centerY, true, false);
+                                } else if (point) {
+                                    const [x, y, w, h] = point.bbox;
+                                    const centerX = (x + w / 2) / video.videoWidth * drawCanvas.width;
+                                    const centerY = (y + h / 2) / video.videoHeight * drawCanvas.height;
+                                    drawFromHand(centerX, centerY, false, false);
+                                } else {
+                                    resetDrawing();
+                                }
+                            }).then(() => requestAnimationFrame(detect));
+                        };
+                        detect();
+                    });
+                }).catch(err => console.error('Video access error:', err));
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            drawCanvas.width = window.innerWidth / 2;
+            drawCanvas.height = window.innerHeight;
+            liveCanvas.width = window.innerWidth / 2;
+            liveCanvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+
+</html>
