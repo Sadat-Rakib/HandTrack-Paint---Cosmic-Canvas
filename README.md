@@ -47,12 +47,18 @@ Run
 Copy
 cd cosmic-canvas
 Open index.html in your browser.
-Dependencies
-HandTrack.js: For hand gesture detection (https://cdn.jsdelivr.net/npm/handtrackjs/dist/handtrack.min.js).
-p5.js: For cosmic background particle effects (https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js).
-Howler.js: For sound effects (https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js).
-Tailwind CSS: For styling (https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css).
-Sound Files
+
+### Mission
+Our mission is to democratize art creation by integrating cutting-edge AI with intuitive design, providing a platform where anyone with a webcam can unleash their imagination.
+
+### Development
+Developed with love using:
+- **HandTrack.js**: For real-time hand detection.
+- **p5.js**: To craft the dynamic cosmic background.
+- **Howler.js**: To add immersive sound effects.
+- **Tailwind CSS**: For a sleek, responsive interface.
+
+# Sound Files
 Place the following sound files in a /sounds directory:
 
 draw.mp3: Sound for drawing actions.
@@ -69,5 +75,14 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 - Howler.js by James Simpson for audio management.
 - Tailwind CSS for rapid UI development.
 
+### Inspiration
+Inspired by the boundless creativity of the universe and the potential of human-computer interaction, Cosmic Canvas aims to stand out as a tool for both entertainment and self-expression.
+
+### Get Involved
+Join in enhancing this project! Contribute code, suggest features, or simply share your artwork created with Cosmic Canvas. Check out the [contributing guidelines](CONTRIBUTING.md) to get started.
+
+### Stay Updated
+Follow the progress on GitHub and let’s paint the cosmos together!
+
 # Contact
-- For questions or feedback, reach out via [your email] or open an issue on GitHub.
+- For questions or feedback, reach out via mirsadatbinrakib01@gmail.com or open an issue on GitHub.
